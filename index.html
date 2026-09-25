@@ -160,7 +160,10 @@
   <div class="title">Remote Power <b>Calculator</b></div>
   <div class="spacer"></div>
   <div class="hdr-actions">
+    <button id="openBtn" class="hdr-btn" type="button" title="Open a .jasperpower file">📂 Open</button>
+    <button id="saveBtn" class="hdr-btn" type="button" title="Save the design to a .jasperpower file">💾 Save</button>
     <button id="resetAllBtn" class="hdr-btn" type="button" title="Reset everything to defaults">↺ Reset All</button>
+    <input type="file" id="projFile" accept=".jasperpower,.json" style="display:none">
   </div>
   <button id="panelToggle" type="button" title="Hide panel">Hide panel ⟩</button>
 </header>
@@ -354,11 +357,14 @@ L.DomEvent.disableClickPropagation($('locateBtn'));
 let siteMarker=null;
 const siteIcon=L.divIcon({className:'site-wrap',html:'<div class="site-badge"><img src="brand/jasper-icon-cyan.svg" alt=""></div>',iconSize:[40,40],iconAnchor:[20,38]});
 map.on('click',e=>setSite(e.latlng.lat,e.latlng.lng,true));
+function makeSiteMarker(lat,lng){
+  const mk=L.marker([lat,lng],{icon:siteIcon,draggable:true,zIndexOffset:1500}).addTo(map);
+  mk.on('dragend',()=>{ const p=mk.getLatLng(); ST.site={lat:p.lat,lng:p.lng}; ST.climate=null; renderSite(); fetchClimate(); save(); });
+  return mk;
+}
 function setSite(lat,lng,fetchNow){
   ST.site={lat,lng};
-  if(!siteMarker){ siteMarker=L.marker([lat,lng],{icon:siteIcon,draggable:true,zIndexOffset:1500}).addTo(map);
-    siteMarker.on('dragend',()=>{ const p=siteMarker.getLatLng(); ST.site={lat:p.lat,lng:p.lng}; ST.climate=null; renderSite(); fetchClimate(); save(); }); }
-  else siteMarker.setLatLng([lat,lng]);
+  if(!siteMarker) siteMarker=makeSiteMarker(lat,lng); else siteMarker.setLatLng([lat,lng]);
   ST.climate=null; renderSite(); save();
   if(fetchNow) fetchClimate();
 }
@@ -546,21 +552,63 @@ $('resetAllBtn').onclick=()=>confirmDialog('Reset everything?',
   '<p>This clears your <b>equipment, site location, operational period, and assumptions</b> and returns to defaults.</p>'+
   '<p class="muted">Anything unsaved will be lost.</p>','Reset everything',()=>{ localStorage.removeItem(SKEY); location.reload(); });
 
+/* ---------- save / open design (.jasperpower = JSON) ---------- */
+async function saveProject(){
+  const obj=Object.assign({format:'jasperpower', version:1, savedAt:new Date().toISOString()},
+    JSON.parse(JSON.stringify(ST)));   // full app state (equipment, site, climate, period, assumptions)
+  const json=JSON.stringify(obj,null,2);
+  if(window.showSaveFilePicker){
+    try{
+      const handle=await window.showSaveFilePicker({ suggestedName:'power_design.jasperpower',
+        types:[{description:'JasperPower design', accept:{'application/json':['.jasperpower','.json']}}] });
+      const w=await handle.createWritable(); await w.write(json); await w.close();
+      status('Saved '+handle.name+'.'); return;
+    }catch(err){ if(err && err.name==='AbortError') return; console.error(err); status('Save failed: '+err.message); return; }
+  }
+  const blob=new Blob([json],{type:'application/json'}), url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='power_design.jasperpower';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+  status('Saved power_design.jasperpower (Downloads).');
+}
+function loadProject(obj){
+  if(!obj || obj.format!=='jasperpower') throw new Error('not a .jasperpower file');
+  ST.equip     = Array.isArray(obj.equip)?obj.equip:[];
+  ST.site      = (obj.site && isFinite(obj.site.lat)) ? {lat:obj.site.lat,lng:obj.site.lng} : null;
+  ST.climate   = (obj.climate && obj.climate.psh) ? obj.climate : null;
+  ST.yearRound = obj.yearRound!==false;
+  ST.startMonth= +obj.startMonth||0;
+  ST.endMonth  = (obj.endMonth==null?11:+obj.endMonth);
+  ST.chem      = obj.chem==='leadagm'?'leadagm':'lifepo4';
+  ST.dod       = +obj.dod||80; ST.autonomy=+obj.autonomy||3; ST.sysEff=+obj.sysEff||75;
+  syncUI(); save();
+  status('Loaded design'+(obj.savedAt?` (saved ${new Date(obj.savedAt).toLocaleDateString()})`:'')+'.');
+}
+$('saveBtn').onclick=saveProject;
+$('openBtn').onclick=()=>$('projFile').click();
+$('projFile').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  try{ loadProject(JSON.parse(await f.text())); }
+  catch(err){ console.error(err); status('Could not open '+f.name+': '+err.message); } };
+
+/* ---------- sync all UI + map from ST (used by restore and open) ---------- */
+function syncUI(){
+  $('yearRound').checked=ST.yearRound; $('monthRange').style.display=ST.yearRound?'none':'';
+  $('startMonth').value=ST.startMonth; $('endMonth').value=ST.endMonth;
+  $('chem').value=ST.chem; $('dod').value=ST.dod; $('autonomy').value=ST.autonomy; $('sysEff').value=ST.sysEff;
+  renderEquip();
+  if(siteMarker){ map.removeLayer(siteMarker); siteMarker=null; }
+  if(ST.site){ siteMarker=makeSiteMarker(ST.site.lat,ST.site.lng); map.setView([ST.site.lat,ST.site.lng],9); }
+  renderSite();
+  if(ST.site && !ST.climate) fetchClimate(); else compute();
+}
+
 /* ---------- panel toggle ---------- */
 $('panelToggle').onclick=()=>{ const a=$('app'); a.classList.toggle('collapsed');
   $('panelToggle').textContent = a.classList.contains('collapsed')?'⟨ Panel':'Hide panel ⟩';
   setTimeout(()=>map.invalidateSize(),60); };
 
 /* ---------- init / restore ---------- */
-buildCatalog(); buildMonthSelects(); load();
-// apply restored state to UI
-$('yearRound').checked=ST.yearRound; $('monthRange').style.display=ST.yearRound?'none':'';
-$('startMonth').value=ST.startMonth; $('endMonth').value=ST.endMonth;
-$('chem').value=ST.chem; $('dod').value=ST.dod; $('autonomy').value=ST.autonomy; $('sysEff').value=ST.sysEff;
-renderEquip();
-if(ST.site){ setSite(ST.site.lat,ST.site.lng,false); map.setView([ST.site.lat,ST.site.lng],9);
-  if(ST.climate){ compute(); status('Restored your saved design.'); } else fetchClimate(); }
-else compute();
+buildCatalog(); buildMonthSelects(); load(); syncUI();
+if(ST.site && ST.climate) status('Restored your saved design.');
 </script>
 </body>
 </html>
