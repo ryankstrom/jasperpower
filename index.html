@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jasper · Remote Power Calculator</title>
+<link rel="icon" type="image/svg+xml" href="brand/jasper-icon-cyan.svg" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Jasper / SLR brand palette */
+    --slate:#3f5355; --slate-d:#34464a; --slate-dd:#2b3a3b;
+    --paper:#f4f3ee; --bg:#ffffff; --line:#d9dcd2;
+    --txt:#27383a; --muted:#6f8182;
+    --accent:#2f8f8b; --accent-d:#247470; --cyan:#5ec5c2;
+    --good:#3f9d6b; --warn:#bf831c; --bad:#b3382c;
+    --sun:#e8a02b;
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    background:var(--paper);color:var(--txt)}
+  body{display:flex;flex-direction:column}
+  /* brand header */
+  #brandbar{flex:none;height:80px;background:var(--slate-d);display:flex;align-items:center;
+    gap:18px;padding:0 22px;color:#fff;box-shadow:0 1px 0 rgba(0,0,0,.15)}
+  #brandbar img.logo{height:46px;display:block}
+  #brandbar .divider{width:1px;height:40px;background:rgba(255,255,255,.25)}
+  #brandbar .title{font-family:var(--serif);font-size:26px;font-weight:500;letter-spacing:.2px;
+    color:#eef3f1}
+  #brandbar .title b{font-weight:600}
+  #brandbar .spacer{flex:1}
+  #panelToggle{flex:none;width:auto;background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.3);color:#eef3f1;border-radius:8px;
+    padding:8px 13px;font:600 13px system-ui;cursor:pointer}
+  #panelToggle:hover{background:rgba(255,255,255,.22)}
+  #app.collapsed #panel{display:none}
+  .hdr-actions{display:flex;gap:6px;flex:none}
+  .hdr-btn{flex:none;width:auto;background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.3);color:#eef3f1;border-radius:8px;
+    padding:7px 10px;font:600 12.5px system-ui;cursor:pointer;white-space:nowrap}
+  .hdr-btn:hover{background:rgba(255,255,255,.22)}
+  #app{flex:1;min-height:0;display:flex}
+  #map{flex:1;height:100%;background:#dfe3df;cursor:crosshair}
+  #panel{width:396px;flex:none;background:var(--paper);border-left:1px solid var(--line);
+    overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:9px;font-size:15.5px}
+  #panel>*{flex-shrink:0}
+  h1{font-family:var(--serif);font-size:21px;font-weight:600;margin:0 0 2px;color:var(--slate)}
+  .sub{font-size:13.5px;color:var(--muted);margin:0 0 2px;line-height:1.4}
+  fieldset{border:1px solid var(--line);border-radius:8px;padding:8px 11px 10px;margin:0;
+    background:var(--bg);min-width:0;min-inline-size:0}
+  legend{font-size:12px;color:var(--accent-d);text-transform:uppercase;letter-spacing:.6px;
+    font-weight:600;padding:0 5px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:5px 0}
+  .row label{font-size:15px;color:var(--txt)}
+  .row .hint{font-size:12.5px;color:var(--muted)}
+  input[type=number],select{width:100px;background:#fff;border:1px solid var(--line);
+    color:var(--txt);border-radius:6px;padding:5px 8px;font-size:15px;text-align:right}
+  select{text-align:left}
+  input[type=number]:focus,select:focus{outline:none;border-color:var(--accent);
+    box-shadow:0 0 0 2px rgba(47,143,139,.18)}
+  input[type=text]{width:100%;background:#fff;border:1px solid var(--line);color:var(--txt);
+    border-radius:6px;padding:5px 8px;font-size:14.5px}
+  input[type=text]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(47,143,139,.18)}
+  input[type=checkbox]{accent-color:var(--accent);width:17px;height:17px}
+  button{background:var(--accent);color:#fff;border:0;border-radius:7px;padding:8px;
+    font-size:15px;font-weight:600;cursor:pointer;width:100%}
+  button:hover{background:var(--accent-d)}
+  button:disabled{opacity:.5;cursor:default}
+  button.sec{background:#fff;border:1px solid var(--line);color:var(--slate);font-weight:500}
+  button.sec:hover{background:#fff;border-color:var(--accent)}
+  #status{font-size:13px;color:var(--muted);min-height:15px;line-height:1.4}
+  .readout{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 11px}
+  .readout .big{font-size:26px;font-weight:700;color:var(--accent);line-height:1.1;font-family:var(--serif)}
+  .readout .unit{font-size:14px;font-weight:600;color:var(--accent-d)}
+  .readout .lbl{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .grid2c{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}
+  .kv{display:flex;justify-content:space-between;gap:8px;font-size:13.5px;padding:2px 0}
+  .kv .k{color:var(--muted)} .kv .v{font-weight:600;color:var(--txt);text-align:right}
+  a{color:var(--accent-d)}
+  .pill{display:inline-block;font-size:11px;background:var(--accent);color:#fff;
+    border-radius:999px;padding:1px 7px;font-weight:600;letter-spacing:.3px}
+  .foot{font-size:11.5px;color:var(--muted);line-height:1.45}
+  /* equipment rows */
+  .eq-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line)}
+  .eq-row:first-child{border-top:0}
+  .eq-row .qty{width:52px;text-align:center;flex:none;padding:5px 4px}
+  .eq-row .nm{flex:1;min-width:0;overflow:hidden}
+  .eq-row .nm b{font-size:14px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .eq-row .nm span{font-size:11.5px;color:var(--muted)}
+  .eq-row .rm{flex:none;width:26px;height:26px;padding:0;background:#fff;border:1px solid var(--line);
+    color:var(--bad);border-radius:6px;font-size:15px;line-height:1}
+  .eq-row .rm:hover{background:#fff;border-color:var(--bad)}
+  .eq-empty{font-size:13px;color:var(--muted);padding:4px 0}
+  /* monthly chart */
+  .mon-row{display:flex;align-items:center;gap:7px;font-size:12px;margin:2px 0}
+  .mon-row .mo{width:26px;flex:none;color:var(--muted);font-weight:600}
+  .mon-row.act .mo{color:var(--txt)}
+  .mon-bar-wrap{flex:1;height:14px;background:var(--paper);border-radius:3px;overflow:hidden;position:relative}
+  .mon-bar{height:100%;background:#c7d2cf;border-radius:3px}
+  .mon-row.act .mon-bar{background:var(--sun)}
+  .mon-row.design .mon-bar{background:var(--bad)}
+  .mon-val{width:66px;flex:none;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+  .mon-row.act .mon-val{color:var(--txt)}
+  .warn-box{background:#fdf4e3;border:1px solid #e6d4a8;border-radius:7px;padding:8px 10px;
+    font-size:12.5px;color:#7a5a12;line-height:1.45;margin-top:2px}
+  .warn-box b{color:#6a4d0e}
+  /* aerial + locate map controls */
+  #aerialToggle{position:absolute;top:14px;right:16px;z-index:1000;width:auto;
+    background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:9px;
+    padding:8px 12px;font:600 13px system-ui;color:var(--slate);cursor:pointer;
+    box-shadow:0 1px 5px rgba(0,0,0,.18);user-select:none}
+  #aerialToggle:hover{background:#fff;border-color:var(--accent)}
+  #aerialToggle.on{background:var(--slate);color:#fff;border-color:var(--slate)}
+  #locateBtn{position:absolute;top:56px;right:16px;z-index:1000;width:38px;height:38px;
+    display:flex;align-items:center;justify-content:center;padding:0;
+    background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:9px;
+    color:var(--slate);cursor:pointer;box-shadow:0 1px 5px rgba(0,0,0,.18)}
+  #locateBtn:hover{background:#fff;border-color:var(--accent);color:var(--accent-d)}
+  #locateBtn.active{color:#1a73e8;border-color:#1a73e8}
+  #locateBtn svg{width:20px;height:20px;display:block}
+  .geo-dot{width:15px;height:15px;border-radius:50%;background:#1a73e8;border:2.5px solid #fff;
+    box-shadow:0 0 0 1px rgba(26,115,232,.45),0 1px 4px rgba(0,0,0,.45);position:relative}
+  .geo-dot::after{content:'';position:absolute;inset:-6px;border-radius:50%;
+    background:rgba(26,115,232,.25);animation:geopulse 2s ease-out infinite}
+  @keyframes geopulse{0%{transform:scale(.5);opacity:.7}100%{transform:scale(1.9);opacity:0}}
+  /* site marker */
+  .site-badge{width:40px;height:40px;border-radius:50% 50% 50% 4px;transform:rotate(45deg);
+    background:#fff;border:2.5px solid var(--accent);box-shadow:0 2px 7px rgba(0,0,0,.4);
+    display:flex;align-items:center;justify-content:center}
+  .site-badge img{width:20px;height:20px;transform:rotate(-45deg)}
+  /* confirmation modal */
+  #modalBackdrop{position:fixed;inset:0;z-index:3000;display:none;
+    background:rgba(20,28,30,.5);align-items:center;justify-content:center}
+  #modalBackdrop.show{display:flex}
+  .modal{background:#fff;border-radius:12px;max-width:400px;width:100%;
+    padding:22px 22px 18px;box-shadow:0 14px 44px rgba(0,0,0,.38)}
+  .modal h2{font-family:var(--serif);font-size:20px;color:var(--slate);margin:0 0 10px}
+  .modal p{font-size:14.5px;line-height:1.5;color:var(--txt);margin:0 0 9px}
+  .modal p.muted{color:var(--muted);font-size:13px;margin-bottom:0}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+  .modal-actions button{width:auto;padding:9px 16px}
+  .modal button.danger{background:#b3382c;color:#fff;font-weight:600}
+  .modal button.danger:hover{background:#93291f}
+  @media(max-width:720px){
+    #app{flex-direction:column} #map{height:44vh;flex:none} #panel{width:100%}
+    #brandbar .title{font-size:20px} #brandbar{height:64px;gap:12px;padding:0 14px}
+    #brandbar img.logo{height:36px}
+  }
+</style>
+</head>
+<body>
+<header id="brandbar">
+  <img class="logo" src="brand/jasper-logo-white.svg" alt="Jasper" />
+  <div class="divider"></div>
+  <div class="title">Remote Power <b>Calculator</b></div>
+  <div class="spacer"></div>
+  <div class="hdr-actions">
+    <button id="resetAllBtn" class="hdr-btn" type="button" title="Reset everything to defaults">↺ Reset All</button>
+  </div>
+  <button id="panelToggle" type="button" title="Hide panel">Hide panel ⟩</button>
+</header>
+<div id="app">
+  <div id="map">
+    <button id="aerialToggle" type="button">🛰 <span id="aerialLbl">Aerial</span></button>
+    <button id="locateBtn" type="button" title="Zoom to my location" aria-label="Zoom to my location">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="6"></circle>
+        <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"></circle>
+        <line x1="12" y1="1.5" x2="12" y2="4.5"></line><line x1="12" y1="19.5" x2="12" y2="22.5"></line>
+        <line x1="1.5" y1="12" x2="4.5" y2="12"></line><line x1="19.5" y1="12" x2="22.5" y2="12"></line>
+      </svg></button>
+  </div>
+  <div id="panel">
+    <div>
+      <h1>Off-grid power system sizing</h1>
+      <p class="sub">Pick your equipment, drop your site on the map, and choose when the system
+        runs. JasperPower sizes the <b>solar array</b> and <b>battery storage</b> using
+        location-specific sunlight and temperature, so the design survives the hardest month.</p>
+    </div>
+    <div id="status">Click the map to set your site location.</div>
+
+    <fieldset>
+      <legend>Site location</legend>
+      <div class="row"><span class="hint" id="siteHint">No site yet — click the map (or use ⌖ to locate).</span></div>
+      <div class="row" id="siteCoordsRow" style="display:none">
+        <label>Coordinates</label><span class="hint" id="siteCoords">—</span></div>
+      <div class="kv" id="siteSrcRow" style="display:none"><span class="k" id="siteSrc"></span></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Operational period</legend>
+      <div class="row"><label><input type="checkbox" id="yearRound" checked> Year-round</label>
+        <span class="hint">Runs all 12 months</span></div>
+      <div class="grid2" id="monthRange" style="display:none">
+        <label style="display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--muted)">Start month
+          <select id="startMonth"></select></label>
+        <label style="display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--muted)">End month
+          <select id="endMonth"></select></label>
+      </div>
+      <div class="row"><span class="hint" id="periodHint">Sizing uses the worst month in this window.</span></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Equipment</legend>
+      <div class="row" style="gap:6px">
+        <select id="catSel" style="flex:1;width:auto"></select>
+        <button class="sec" id="addEq" style="width:auto;flex:none;padding:7px 12px">Add</button>
+      </div>
+      <div id="customFields" style="display:none;margin:4px 0 2px">
+        <div class="row" style="margin:4px 0"><input type="text" id="cName" placeholder="Device name"></div>
+        <div class="row" style="margin:4px 0"><label>Avg draw</label><span><input type="number" id="cAvg" min="0" step="0.5" value="5"> W</span></div>
+        <div class="row" style="margin:4px 0"><label>Max draw</label><span><input type="number" id="cMax" min="0" step="0.5" value="10"> W</span></div>
+      </div>
+      <div id="eqList"><div class="eq-empty">No equipment added yet.</div></div>
+      <div class="grid2c" style="margin-top:8px;padding-top:7px;border-top:1px solid var(--line)">
+        <div class="kv"><span class="k">Avg load</span><span class="v" id="sumAvg">0 W</span></div>
+        <div class="kv"><span class="k">Peak load</span><span class="v" id="sumPeak">0 W</span></div>
+        <div class="kv"><span class="k">Energy / day</span><span class="v" id="sumDay">0 Wh</span></div>
+        <div class="kv"><span class="k">Energy / mo</span><span class="v" id="sumMo">0 kWh</span></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>System assumptions</legend>
+      <div class="row"><label>Battery chemistry</label>
+        <select id="chem" style="width:150px">
+          <option value="lifepo4">LiFePO₄ (lithium)</option>
+          <option value="leadagm">Lead-acid / AGM</option>
+        </select></div>
+      <div class="row"><label>Depth of discharge</label><span><input type="number" id="dod" min="20" max="95" step="5" value="80"> %</span></div>
+      <div class="row"><label>Days of autonomy</label><span><input type="number" id="autonomy" min="1" max="14" step="1" value="3"> d</span></div>
+      <div class="row"><label>System efficiency</label><span><input type="number" id="sysEff" min="40" max="95" step="1" value="75"> %</span></div>
+      <div class="row"><span class="hint">Autonomy = days of full load the battery covers with no sun.
+        System efficiency folds in wiring, charge controller and battery round-trip losses.</span></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Recommended system</legend>
+      <div class="grid2">
+        <div class="readout"><div class="lbl">Solar array</div>
+          <div><span class="big" id="rPv">—</span> <span class="unit">W</span></div></div>
+        <div class="readout"><div class="lbl">Energy storage</div>
+          <div><span class="big" id="rStore">—</span> <span class="unit">kWh</span></div></div>
+      </div>
+      <div class="grid2c" style="margin-top:9px">
+        <div class="kv"><span class="k">Design month</span><span class="v" id="rDesign">—</span></div>
+        <div class="kv"><span class="k">Sun that month</span><span class="v" id="rPsh">—</span></div>
+        <div class="kv"><span class="k">Coldest month</span><span class="v" id="rCold">—</span></div>
+        <div class="kv"><span class="k">Battery derate</span><span class="v" id="rDerate">—</span></div>
+        <div class="kv"><span class="k">Usable storage</span><span class="v" id="rUsable">—</span></div>
+        <div class="kv"><span class="k">Peak / inverter</span><span class="v" id="rPeak">—</span></div>
+      </div>
+      <div id="warnBox"></div>
+    </fieldset>
+
+    <fieldset id="monthlyBox" style="display:none">
+      <legend>Monthly sunlight <span id="monLegend" style="text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400"></span></legend>
+      <div id="monthly"></div>
+    </fieldset>
+
+    <p class="foot">Solar irradiance &amp; temperature: <a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener">NASA POWER</a>
+      climatology (long-term monthly means) for the selected point. Sizing is a planning estimate —
+      verify against equipment datasheets and local conditions before purchasing.</p>
+  </div>
+</div>
+
+<div id="modalBackdrop">
+  <div class="modal">
+    <h2 id="modalTitle"></h2>
+    <div id="modalBody"></div>
+    <div class="modal-actions">
+      <button class="sec" id="modalCancel" type="button">Cancel</button>
+      <button class="danger" id="modalConfirm" type="button">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const status = m => $('status').textContent = m;
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MON_KEY = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const MID_DOY = [15,45,74,105,135,166,196,227,258,288,319,349];
+
+/* ---------- hard-coded equipment catalog (avg & max draw, Watts) ---------- */
+const CATALOG = [
+  {key:'starlink_mini',  name:'Starlink Mini',                    avgW:25,  maxW:40},
+  {key:'starlink_std',   name:'Starlink Standard (Gen 3)',        avgW:75,  maxW:110},
+  {key:'tektelic_macro', name:'Tektelic KONA Macro Outdoor GW',   avgW:7,   maxW:12},
+  {key:'tektelic_micro', name:'Tektelic KONA Micro Outdoor GW',   avgW:4,   maxW:7},
+  {key:'lte_router',     name:'Industrial LTE/5G router',         avgW:6,   maxW:11},
+  {key:'poe_switch',     name:'PoE network switch (4-port)',      avgW:8,   maxW:16},
+  {key:'edge_pi',        name:'Edge compute (Raspberry Pi 4)',    avgW:5,   maxW:8},
+  {key:'ip_camera',      name:'PoE IP camera',                    avgW:6,   maxW:12},
+  {key:'lorawan_node',   name:'LoRaWAN sensor node',              avgW:0.1, maxW:0.5},
+  {key:'iridium',        name:'Iridium satellite modem',          avgW:5,   maxW:30},
+  {key:'rtu_scada',      name:'SCADA / RTU controller',           avgW:4,   maxW:8},
+  {key:'custom',         name:'Custom device…',                   avgW:5,   maxW:10},
+];
+
+/* ---------- battery temperature derate curves (frac of rated vs °C) ---------- */
+const TEMP_CURVE = {
+  lifepo4:[[-30,.55],[-20,.70],[-10,.82],[0,.90],[10,.96],[25,1],[45,1]],
+  leadagm:[[-30,.45],[-20,.55],[-10,.68],[0,.80],[10,.90],[25,1],[45,1]],
+};
+function tempDerate(chem,t){
+  const c=TEMP_CURVE[chem]||TEMP_CURVE.lifepo4;
+  if(t<=c[0][0]) return c[0][1];
+  if(t>=c[c.length-1][0]) return c[c.length-1][1];
+  for(let i=1;i<c.length;i++){ if(t<=c[i][0]){
+    const [x0,y0]=c[i-1],[x1,y1]=c[i]; return y0+(y1-y0)*(t-x0)/(x1-x0); } }
+  return 1;
+}
+
+/* ---------- app state ---------- */
+const ST = { site:null, climate:null, yearRound:true, startMonth:0, endMonth:11,
+             equip:[], chem:'lifepo4', dod:80, autonomy:3, sysEff:75 };
+const SKEY='jasperpower:state';
+function save(){ try{ localStorage.setItem(SKEY, JSON.stringify(ST)); }catch(e){} }
+function load(){ try{ const s=JSON.parse(localStorage.getItem(SKEY)||'null');
+  if(s) Object.assign(ST,s); }catch(e){} }
+
+/* ---------- map ---------- */
+const map = L.map('map',{zoomControl:true}).setView([43.5448,-80.2482],5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+const aerial = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  {maxZoom:19,attribution:'Imagery © Esri, Maxar, Earthstar Geographics'});
+let aerialOn=false;
+L.DomEvent.disableClickPropagation($('aerialToggle'));
+$('aerialToggle').onclick=()=>{ aerialOn=!aerialOn; const b=$('aerialToggle');
+  if(aerialOn){ aerial.addTo(map); aerial.bringToFront(); b.classList.add('on'); $('aerialLbl').textContent='Aerial on'; }
+  else { map.removeLayer(aerial); b.classList.remove('on'); $('aerialLbl').textContent='Aerial'; } };
+
+// locate
+let geoDot=null,geoAcc=null,geoWatch=null,geoRecenter=true;
+const geoIcon=L.divIcon({className:'geo-wrap',html:'<div class="geo-dot"></div>',iconSize:[15,15],iconAnchor:[7.5,7.5]});
+function updGeo(p){ const c=p.coords,ll=[c.latitude,c.longitude];
+  if(!geoDot){ geoAcc=L.circle(ll,{radius:c.accuracy,color:'#1a73e8',weight:1,fillColor:'#1a73e8',fillOpacity:.12,interactive:false}).addTo(map);
+    geoDot=L.marker(ll,{icon:geoIcon,interactive:false,keyboard:false,zIndexOffset:2000}).addTo(map); $('locateBtn').classList.add('active'); }
+  else { geoDot.setLatLng(ll); geoAcc.setLatLng(ll).setRadius(c.accuracy); }
+  if(geoRecenter){ map.setView(ll,Math.max(map.getZoom(),9)); geoRecenter=false; } }
+$('locateBtn').onclick=()=>{ if(!navigator.geolocation){ status('Geolocation is not available in this browser.'); return; }
+  geoRecenter=true; if(geoDot) map.setView(geoDot.getLatLng(),Math.max(map.getZoom(),9));
+  if(geoWatch==null){ status('Locating…'); geoWatch=navigator.geolocation.watchPosition(updGeo,e=>status('Location error: '+e.message),{enableHighAccuracy:true,maximumAge:5000,timeout:15000}); } };
+L.DomEvent.disableClickPropagation($('locateBtn'));
+
+// site marker
+let siteMarker=null;
+const siteIcon=L.divIcon({className:'site-wrap',html:'<div class="site-badge"><img src="brand/jasper-icon-cyan.svg" alt=""></div>',iconSize:[40,40],iconAnchor:[20,38]});
+map.on('click',e=>setSite(e.latlng.lat,e.latlng.lng,true));
+function setSite(lat,lng,fetchNow){
+  ST.site={lat,lng};
+  if(!siteMarker){ siteMarker=L.marker([lat,lng],{icon:siteIcon,draggable:true,zIndexOffset:1500}).addTo(map);
+    siteMarker.on('dragend',()=>{ const p=siteMarker.getLatLng(); ST.site={lat:p.lat,lng:p.lng}; ST.climate=null; renderSite(); fetchClimate(); save(); }); }
+  else siteMarker.setLatLng([lat,lng]);
+  ST.climate=null; renderSite(); save();
+  if(fetchNow) fetchClimate();
+}
+function renderSite(){
+  if(!ST.site){ $('siteHint').style.display=''; $('siteCoordsRow').style.display='none'; $('siteSrcRow').style.display='none'; return; }
+  $('siteHint').style.display='none';
+  $('siteCoordsRow').style.display=''; $('siteCoords').textContent=`${ST.site.lat.toFixed(4)}, ${ST.site.lng.toFixed(4)}`;
+}
+
+/* ---------- climate: NASA POWER climatology, with physics fallback ---------- */
+async function fetchClimate(){
+  if(!ST.site) return;
+  const {lat,lng}=ST.site;
+  status('Fetching sunlight & temperature for this site…');
+  const url=`https://power.larc.nasa.gov/api/temporal/climatology/point?parameters=ALLSKY_SFC_SW_DWN,T2M&community=RE&longitude=${lng.toFixed(4)}&latitude=${lat.toFixed(4)}&format=JSON`;
+  try{
+    const r=await fetch(url); if(!r.ok) throw new Error('HTTP '+r.status);
+    const j=await r.json(); const p=j.properties.parameter;
+    const psh=MON_KEY.map(k=>p.ALLSKY_SFC_SW_DWN[k]);
+    const tmp=MON_KEY.map(k=>p.T2M[k]);
+    if(psh.some(v=>v==null||v<=-900)||tmp.some(v=>v==null||v<=-900)) throw new Error('missing values');
+    ST.climate={psh,tmp,source:'nasa'};
+    status('Sunlight & temperature loaded (NASA POWER).');
+  }catch(err){
+    ST.climate=estimateClimate(lat); ST.climate.source='estimate';
+    status('NASA POWER unavailable — using a latitude-based estimate for sunlight & temperature.');
+  }
+  save(); compute();
+}
+// physics fallback: FAO-56 extraterrestrial radiation × clearness index; crude seasonal temp
+function estimateClimate(lat){
+  const phi=lat*Math.PI/180, Kt=0.5, psh=[], tmp=[];
+  const tMean=27-0.006*Math.abs(lat)*Math.abs(lat)-0.15*Math.abs(lat)+ (Math.abs(lat)<23?3:0); // rough
+  const amp=3+Math.abs(lat)*0.7;
+  for(let m=0;m<12;m++){
+    const J=MID_DOY[m];
+    const dr=1+0.033*Math.cos(2*Math.PI*J/365);
+    const dec=0.409*Math.sin(2*Math.PI*J/365-1.39);
+    let ws=Math.cos(-Math.tan(phi)*Math.tan(dec)); ws=Math.max(-1,Math.min(1,ws)); ws=Math.acos(ws);
+    const Ra=(24*60/Math.PI)*0.0820*dr*(ws*Math.sin(phi)*Math.sin(dec)+Math.cos(phi)*Math.cos(dec)*Math.sin(ws)); // MJ/m2/day
+    psh[m]=Math.max(0,(Kt*Ra)/3.6); // kWh/m2/day
+    // seasonal temp: N hemi min in Jan, S hemi min in Jul
+    const season=Math.cos(2*Math.PI*(m)/12); // +1 at Jan
+    tmp[m]=tMean - (lat>=0?1:-1)*amp*season;
+  }
+  return {psh,tmp};
+}
+
+/* ---------- equipment UI ---------- */
+function buildCatalog(){ const s=$('catSel'); s.innerHTML='';
+  CATALOG.forEach(c=>{ const o=document.createElement('option'); o.value=c.key;
+    o.textContent = c.key==='custom' ? c.name : `${c.name}  (${c.avgW} W avg)`; s.appendChild(o); }); }
+$('catSel').onchange=()=>{ $('customFields').style.display = $('catSel').value==='custom' ? '' : 'none'; };
+$('addEq').onclick=()=>{
+  const key=$('catSel').value;
+  if(key==='custom'){
+    const name=($('cName').value||'Custom device').replace(/[<>]/g,'').trim();
+    const avgW=Math.max(0,parseFloat($('cAvg').value)||0), maxW=Math.max(avgW,parseFloat($('cMax').value)||0);
+    ST.equip.push({name,avgW,maxW,qty:1,custom:true});
+    $('cName').value='';
+  } else {
+    const c=CATALOG.find(x=>x.key===key);
+    const ex=ST.equip.find(e=>e.key===key);
+    if(ex) ex.qty++; else ST.equip.push({key,name:c.name,avgW:c.avgW,maxW:c.maxW,qty:1});
+  }
+  renderEquip(); save(); compute();
+};
+function renderEquip(){
+  const box=$('eqList');
+  if(!ST.equip.length){ box.innerHTML='<div class="eq-empty">No equipment added yet.</div>'; }
+  else{
+    box.innerHTML='';
+    ST.equip.forEach((e,i)=>{
+      const row=document.createElement('div'); row.className='eq-row';
+      row.innerHTML=`<input class="qty" type="number" min="1" step="1" value="${e.qty}" data-i="${i}">
+        <div class="nm"><b>${e.name}</b><span>${fmtNum(e.avgW)} W avg · ${fmtNum(e.maxW)} W peak</span></div>
+        <button class="rm" data-i="${i}" title="Remove">✕</button>`;
+      box.appendChild(row);
+    });
+    box.querySelectorAll('input.qty').forEach(inp=>inp.onchange=()=>{
+      const i=+inp.dataset.i; ST.equip[i].qty=Math.max(1,parseInt(inp.value,10)||1); inp.value=ST.equip[i].qty; save(); compute(); });
+    box.querySelectorAll('button.rm').forEach(b=>b.onclick=()=>{
+      ST.equip.splice(+b.dataset.i,1); renderEquip(); save(); compute(); });
+  }
+}
+function fmtNum(n){ return n>=10?Math.round(n):(Math.round(n*10)/10); }
+
+/* ---------- months UI ---------- */
+function buildMonthSelects(){ [ 'startMonth','endMonth' ].forEach(id=>{ const s=$(id); s.innerHTML='';
+  MONTHS.forEach((m,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=m; s.appendChild(o); }); }); }
+function activeMonths(){
+  if(ST.yearRound) return [0,1,2,3,4,5,6,7,8,9,10,11];
+  const a=[]; let i=ST.startMonth; for(let n=0;n<12;n++){ a.push(i); if(i===ST.endMonth) break; i=(i+1)%12; } return a;
+}
+$('yearRound').onchange=()=>{ ST.yearRound=$('yearRound').checked;
+  $('monthRange').style.display=ST.yearRound?'none':''; save(); compute(); };
+$('startMonth').onchange=()=>{ ST.startMonth=+$('startMonth').value; save(); compute(); };
+$('endMonth').onchange=()=>{ ST.endMonth=+$('endMonth').value; save(); compute(); };
+
+/* ---------- assumptions UI ---------- */
+$('chem').onchange=()=>{ ST.chem=$('chem').value;
+  $('dod').value = ST.chem==='lifepo4'?80:50; ST.dod=+$('dod').value; save(); compute(); };
+['dod','autonomy','sysEff'].forEach(id=>$(id).oninput=()=>{ ST[id]=parseFloat($(id).value)||0; save(); compute(); });
+
+/* ---------- the calculation ---------- */
+function compute(){
+  const pAvg=ST.equip.reduce((s,e)=>s+e.avgW*e.qty,0);
+  const pPeak=ST.equip.reduce((s,e)=>s+e.maxW*e.qty,0);
+  const eDay=pAvg*24;                       // Wh/day
+  $('sumAvg').textContent=fmtNum(pAvg)+' W';
+  $('sumPeak').textContent=fmtNum(pPeak)+' W';
+  $('sumDay').textContent=fmtNum(eDay)+' Wh';
+  $('sumMo').textContent=(eDay*30.4/1000).toFixed(1)+' kWh';
+
+  const act=activeMonths();
+  $('periodHint').textContent = ST.yearRound ? 'Sizing uses the worst of all 12 months.'
+    : `Active: ${MONTHS[ST.startMonth]}–${MONTHS[ST.endMonth]} (${act.length} mo). Sizing uses the worst month in this window.`;
+
+  const blank=v=>{ ['rPv','rStore','rDesign','rPsh','rCold','rDerate','rUsable','rPeak'].forEach(id=>$(id).textContent='—'); $('warnBox').innerHTML=''; $('monthlyBox').style.display='none'; if(v)status(v); };
+  if(!ST.equip.length){ blank(); return; }
+  if(!ST.climate){ blank(); return; }
+
+  const {psh,tmp,source}=ST.climate;
+  const eff=Math.max(.1,ST.sysEff/100), dod=Math.max(.1,ST.dod/100);
+
+  // design month = active month with the LOWEST sun (highest PV requirement)
+  let design=act[0]; act.forEach(m=>{ if(psh[m]<psh[design]) design=m; });
+  const pshDesign=psh[design];
+  const pvReq = eDay/(pshDesign*eff);       // W of array
+
+  // coldest active month drives battery capacity derate
+  let cold=act[0]; act.forEach(m=>{ if(tmp[m]<tmp[cold]) cold=m; });
+  const derate=tempDerate(ST.chem,tmp[cold]);
+  const nameplateWh = (eDay*ST.autonomy)/(dod*derate);
+  const usableWh = eDay*ST.autonomy;
+
+  $('rPv').textContent = eDay>0 ? Math.ceil(pvReq/10)*10 : '0';
+  $('rStore').textContent = (Math.ceil(nameplateWh/100)/10).toFixed(1);
+  $('rDesign').textContent = MONTHS[design];
+  $('rPsh').textContent = pshDesign.toFixed(1)+' h';
+  $('rCold').textContent = `${MONTHS[cold]} · ${Math.round(tmp[cold])}°C`;
+  $('rDerate').textContent = Math.round(derate*100)+'%';
+  $('rUsable').textContent = (usableWh/1000).toFixed(1)+' kWh';
+  $('rPeak').textContent = '≥ '+Math.ceil(pPeak/10)*10+' W';
+
+  // warnings
+  const warns=[];
+  if(ST.chem==='lifepo4' && tmp[cold]<0)
+    warns.push(`<b>Cold-charging risk:</b> ${MONTHS[cold]} averages ${Math.round(tmp[cold])}°C. LiFePO₄ cannot charge below 0°C without self-heating — budget for a heated/insulated enclosure (adds parasitic load) or switch chemistry.`);
+  if(derate<0.85)
+    warns.push(`Cold cuts usable battery capacity to <b>${Math.round(derate*100)}%</b> in ${MONTHS[cold]}; storage is upsized to compensate.`);
+  if(source==='estimate')
+    warns.push(`Using a <b>latitude-based estimate</b> (NASA POWER didn't respond). Move the pin or retry for measured climatology.`);
+  $('warnBox').innerHTML = warns.map(w=>`<div class="warn-box">${w}</div>`).join('');
+
+  renderMonthly(psh,tmp,act,design);
+}
+
+function renderMonthly(psh,tmp,act,design){
+  const box=$('monthly'); box.innerHTML=''; $('monthlyBox').style.display='';
+  $('monLegend').textContent = ST.climate.source==='estimate' ? '(estimated)' : '';
+  const maxP=Math.max(...psh);
+  psh.forEach((v,m)=>{
+    const isAct=act.includes(m), isDes=(m===design);
+    const row=document.createElement('div');
+    row.className='mon-row'+(isAct?' act':'')+(isDes?' design':'');
+    row.innerHTML=`<span class="mo">${MONTHS[m]}</span>
+      <div class="mon-bar-wrap"><div class="mon-bar" style="width:${(v/maxP*100).toFixed(0)}%"></div></div>
+      <span class="mon-val">${v.toFixed(1)}h · ${Math.round(tmp[m])}°</span>`;
+    box.appendChild(row);
+  });
+  const key=document.createElement('div'); key.className='foot'; key.style.marginTop='6px';
+  key.innerHTML=`<span style="color:var(--sun)">■</span> active month &nbsp; <span style="color:var(--bad)">■</span> design (worst) month &nbsp; hours = peak-sun-hours/day`;
+  box.appendChild(key);
+}
+
+/* ---------- reset ---------- */
+function confirmDialog(title,body,label,onYes){
+  $('modalTitle').textContent=title; $('modalBody').innerHTML=body; $('modalConfirm').textContent=label;
+  $('modalBackdrop').classList.add('show');
+  const close=()=>{ $('modalBackdrop').classList.remove('show'); $('modalConfirm').onclick=null; $('modalCancel').onclick=null; };
+  $('modalConfirm').onclick=()=>{ close(); onYes(); }; $('modalCancel').onclick=close;
+}
+$('resetAllBtn').onclick=()=>confirmDialog('Reset everything?',
+  '<p>This clears your <b>equipment, site location, operational period, and assumptions</b> and returns to defaults.</p>'+
+  '<p class="muted">Anything unsaved will be lost.</p>','Reset everything',()=>{ localStorage.removeItem(SKEY); location.reload(); });
+
+/* ---------- panel toggle ---------- */
+$('panelToggle').onclick=()=>{ const a=$('app'); a.classList.toggle('collapsed');
+  $('panelToggle').textContent = a.classList.contains('collapsed')?'⟨ Panel':'Hide panel ⟩';
+  setTimeout(()=>map.invalidateSize(),60); };
+
+/* ---------- init / restore ---------- */
+buildCatalog(); buildMonthSelects(); load();
+// apply restored state to UI
+$('yearRound').checked=ST.yearRound; $('monthRange').style.display=ST.yearRound?'none':'';
+$('startMonth').value=ST.startMonth; $('endMonth').value=ST.endMonth;
+$('chem').value=ST.chem; $('dod').value=ST.dod; $('autonomy').value=ST.autonomy; $('sysEff').value=ST.sysEff;
+renderEquip();
+if(ST.site){ setSite(ST.site.lat,ST.site.lng,false); map.setView([ST.site.lat,ST.site.lng],9);
+  if(ST.climate){ compute(); status('Restored your saved design.'); } else fetchClimate(); }
+else compute();
+</script>
+</body>
+</html>
