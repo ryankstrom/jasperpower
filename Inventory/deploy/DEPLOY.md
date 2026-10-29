@@ -29,6 +29,9 @@ console, or run the `gcloud` commands in [Cloud Shell](https://shell.cloud.googl
 1. Create a project, e.g. `jasper-inventory`, and link a billing account.
 2. **Billing → Budgets & alerts → Create budget**: set the amount to **$1** and
    email alerts at 50% and 100%. If anything starts billing, you'll know within a day.
+   The budget must use the billing account's own currency (e.g. `1CAD` for a Canadian
+   account); `gcloud billing budgets create` rejects a mismatched currency with a
+   bare "invalid argument".
 
 ```sh
 gcloud config set project jasper-inventory
@@ -71,12 +74,14 @@ gcloud compute instances create jasper-inventory \
 ## 4. Cloudflare Tunnel
 
 1. Add your domain to Cloudflare if it isn't there yet.
-2. Go to **Cloudflare dashboard → Zero Trust → Networks → Tunnels → Create a tunnel**
-   and choose **Cloudflared**. Name it `jasper-inventory`.
-3. On the install screen, copy the **token**: the long string after
-   `cloudflared service install`. You'll paste it in step 5. Skip running their
-   install command, because the setup script does it.
-4. **Public hostname**: subdomain `inventory`, your domain, service **HTTP**,
+2. First time only: **Zero Trust → Get started → Zero Trust Free** ($0, up to 50 users).
+   Cloudflare asks you to accept its terms and keep a card on file.
+3. Go to **Networking → Tunnels → Create Tunnel**. Name it `jasper-inventory`.
+4. On the install screen, copy the **token**: the long string after
+   `cloudflared service install` (use the copy button; the dashboard masks it on
+   screen). You'll paste it in step 5. Skip running their install command,
+   because the setup script does it.
+5. **Public hostname**: subdomain `inventory`, your domain, service **HTTP**,
    URL `localhost:8790`. Save.
 
 ## 5. Install the app on the VM
@@ -110,9 +115,13 @@ telling anyone the address**. Until then, anyone who finds it can edit the inven
    convenient on phones.
 3. Add a policy: **Allow**. Include **Emails ending in** `@yourdomain.com`, and/or
    specific **Emails** for people outside your domain.
-4. Login method: **One-time PIN** works with no setup (Cloudflare emails a code). To
-   use "Sign in with Google", add Google under **Settings → Authentication** first.
-   Cloudflare walks you through creating the Google OAuth client.
+4. Login method: a new Zero Trust account only has the **Cloudflare** login, which
+   your staff don't have. Add **One-time PIN** under **Integrations → Identity
+   providers → Add an identity provider** (Cloudflare emails a code). Then, in the
+   application's **Authentication** section, turn off *Accept all available identity
+   providers*, choose only **One-time PIN**, and turn on **Apply instant
+   authentication** so people go straight to the email box. "Sign in with Google"
+   can be added the same way later; Cloudflare walks you through the OAuth client.
 
 Access is free for up to 50 users. Once someone signs in, the app records their
 email on every history entry, and the "Set name" button shows who's signed in.
