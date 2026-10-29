@@ -54,7 +54,7 @@ touch "$ENV_FILE" && chmod 640 "$ENV_FILE" && chgrp jasper "$ENV_FILE"
 setenv() { # set KEY=VALUE, keeping any existing value unless a new one is given
   local key=$1 val=$2
   if grep -q "^$key=" "$ENV_FILE"; then
-    [[ -n "$val" ]] && sed -i "s|^$key=.*|$key=$val|" "$ENV_FILE"
+    if [[ -n "$val" ]]; then sed -i "s|^$key=.*|$key=$val|" "$ENV_FILE"; fi
   else
     echo "$key=$val" >> "$ENV_FILE"
   fi
