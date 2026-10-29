@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly JasperInventory database backup
+
+[Timer]
+# 09:00 UTC = 2–3 am US Mountain time
+OnCalendar=*-*-* 09:00:00 UTC
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

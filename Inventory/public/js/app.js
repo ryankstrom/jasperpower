@@ -910,11 +910,11 @@ async function pageScan(params, code) {
 }
 
 // ---------- boot ----------
+let signedIn = null; // email from Cloudflare Access, when deployed behind it
 function renderActor() {
-  const n = actor.get();
-  $('#actorLbl').textContent = n || 'Set name';
+  $('#actorLbl').textContent = signedIn || actor.get() || 'Set name';
 }
-$('#actorBtn').onclick = () => modal(`<h2>Who’s using this device?</h2>
+$('#actorBtn').onclick = () => signedIn ? toast(`Signed in as ${signedIn}`) : modal(`<h2>Who’s using this device?</h2>
   <p class="muted small">Your name is saved on this browser and recorded on history entries you make. (Sign-in comes later.)</p>
   <form class="stack"><input type="text" name="n" value="${esc(actor.get())}" placeholder="Your name">
   <div class="modal-actions"><button type="button" class="sec" data-x>Cancel</button><button>Save</button></div></form>`, m => {
@@ -925,6 +925,9 @@ $('#actorBtn').onclick = () => modal(`<h2>Who’s using this device?</h2>
 window.addEventListener('hashchange', router);
 (async () => {
   renderActor();
-  try { META = await api('/meta'); } catch { view.innerHTML = '<div class="card empty">Can’t reach the server.</div>'; return; }
+  try {
+    [META, { email: signedIn }] = await Promise.all([api('/meta'), api('/me')]);
+    renderActor();
+  } catch { view.innerHTML = '<div class="card empty">Can’t reach the server.</div>'; return; }
   router();
 })();

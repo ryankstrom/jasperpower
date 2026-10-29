@@ -41,7 +41,8 @@ DB_PATH=/tmp/jinv-demo.db npm start
 
 Environment variables: `PORT` (default 8790), `DB_PATH`, `PUBLIC_URL` (base URL
 printed into QR labels; defaults to the host the request came in on),
-`HTTPS_PORT` (default 8791).
+`HTTPS_PORT` (default 8791), `HOST` (bind address, e.g. `127.0.0.1`),
+`TRUST_ACCESS_HEADER=1` (use the Cloudflare Access email as the user).
 
 ## Using it from a phone
 
@@ -63,6 +64,13 @@ deployment, put the app behind a reverse proxy or host that terminates TLS.
 
 QR labels encode `<PUBLIC_URL>/u/<UID>`, so a phone's own camera app also opens
 the device directly. Set `PUBLIC_URL` before printing labels for production.
+
+## Hosting it
+
+[deploy/DEPLOY.md](deploy/DEPLOY.md) walks through running it for free on a
+Google Cloud e2-micro VM, with Cloudflare Tunnel for https and Cloudflare
+Access for sign-in. When it runs behind Access (`TRUST_ACCESS_HEADER=1`),
+history entries record the signed-in email.
 
 ## Layout
 

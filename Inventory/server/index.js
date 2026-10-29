@@ -9,6 +9,7 @@ import { createApi } from './api.js';
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
 const PORT = Number(process.env.PORT) || 8790;
+const HOST = process.env.HOST; // e.g. 127.0.0.1 when only a tunnel/proxy should reach it
 
 const db = openDb();
 const app = express();
@@ -26,8 +27,8 @@ app.use(express.static(resolve(root, 'public'), { extensions: ['html'] }));
 // Phones only allow camera access on https (or localhost). If certs/key.pem + certs/cert.pem
 // exist, also serve https on HTTPS_PORT so the scanner works from a phone on the LAN.
 const certDir = resolve(root, 'certs');
-app.listen(PORT, () => {
-  console.log(`JasperInventory on http://localhost:${PORT}  (db: ${DB_PATH})`);
+app.listen(PORT, HOST, () => {
+  console.log(`JasperInventory on http://${HOST || 'localhost'}:${PORT}  (db: ${DB_PATH})`);
 });
 if (existsSync(resolve(certDir, 'key.pem')) && existsSync(resolve(certDir, 'cert.pem'))) {
   const HTTPS_PORT = Number(process.env.HTTPS_PORT) || 8791;

@@ -1,0 +1,9 @@
+[Unit]
+Description=JasperInventory database backup
+
+[Service]
+Type=oneshot
+User=jasper
+Group=jasper
+EnvironmentFile=/etc/jasperinventory.env
+ExecStart=/opt/jasperpower/Inventory/deploy/backup.sh

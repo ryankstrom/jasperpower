@@ -16,7 +16,12 @@ export class HttpError extends Error {
 
 // Who is acting. Until logins exist this is the name the user typed in the header;
 // once auth lands, swap this for req.user.
+// Behind Cloudflare Access (TRUST_ACCESS_HEADER=1) the signed-in user's email is authoritative.
+const accessEmail = req =>
+  (process.env.TRUST_ACCESS_HEADER === '1' && req.get('cf-access-authenticated-user-email')) || null;
 const actorOf = req => {
+  const email = accessEmail(req);
+  if (email) return email;
   let v = req.get('x-actor') || '';
   try { v = decodeURIComponent(v); } catch { /* use as sent */ }
   return v.trim().slice(0, 80) || null;
@@ -84,6 +89,7 @@ export function createApi(db) {
       'lat', 'lon', 'note', 'changes', 'actor'].map(k => [k, e[k] ?? null])));
 
   // ---- reference data ----
+  r.get('/me', (req, res) => res.json({ email: accessEmail(req) }));
   r.get('/meta', (req, res) => res.json({ statuses: STATUSES, categories: CATEGORIES, location_kinds: LOCATION_KINDS }));
 
   r.get('/stats', (req, res) => {
