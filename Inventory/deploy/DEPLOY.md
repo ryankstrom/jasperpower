@@ -123,6 +123,15 @@ telling anyone the address**. Until then, anyone who finds it can edit the inven
    authentication** so people go straight to the email box. "Sign in with Google"
    can be added the same way later; Cloudflare walks you through the OAuth client.
 
+5. Branding (optional): **Reusable components → Custom pages → Access login page**.
+   Set the organization name, a logo URL, header and message text, and background
+   `#34464a` (Jasper slate). The logo must be publicly reachable, and everything on
+   the app's hostname is behind Access, so point it at jsDelivr instead, e.g.
+   `https://cdn.jsdelivr.net/gh/ryankstrom/jasperpower@<commit>/Inventory/public/brand/jasper-logo-cyan.svg`.
+   With a custom background the login card is white, so use the slate (`-cyan`)
+   logo, not the white one. Under **Settings → Team domain** you can rename the
+   sign-in address (this account uses `jasper-tools.cloudflareaccess.com`).
+
 Access is free for up to 50 users. Once someone signs in, the app records their
 email on every history entry, and the "Set name" button shows who's signed in.
 
