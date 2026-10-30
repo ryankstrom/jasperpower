@@ -36,8 +36,9 @@ a{color:var(--accent-d)}
 .hdr-menu[hidden]{display:none}
 .hdr-menu-who{padding:8px 10px;font:12px system-ui;color:#6b7b7d;border-bottom:1px solid #e6e4dc;margin-bottom:4px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.hdr-menu a{display:block;padding:9px 10px;border-radius:6px;color:var(--slate);text-decoration:none;font:600 14px system-ui}
-.hdr-menu a:hover{background:var(--paper)}
+.hdr-menu a,.hdr-menu button{display:block;width:100%;text-align:left;background:none;border:0;cursor:pointer;padding:9px 10px;border-radius:6px;color:var(--slate);text-decoration:none;font:600 14px system-ui}
+.hdr-menu [hidden]{display:none}
+.hdr-menu a:hover,.hdr-menu button:hover{background:var(--paper)}
 
 /* ---------- nav: underlined tab bar on desktop, bottom bar on phones ---------- */
 #nav{display:flex;gap:4px;border-bottom:2px solid var(--line);max-width:1180px;margin:10px auto 0;padding:0 18px}

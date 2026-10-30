@@ -89,7 +89,13 @@ export function createApi(db) {
       'lat', 'lon', 'note', 'changes', 'actor'].map(k => [k, e[k] ?? null])));
 
   // ---- reference data ----
-  r.get('/me', (req, res) => res.json({ email: accessEmail(req) }));
+  r.get('/me', (req, res) => {
+    const email = accessEmail(req);
+    // Any request that reached us through Cloudflare Access carries its JWT, even if the email header is missing.
+    const access = process.env.TRUST_ACCESS_HEADER === '1' && !!(email || req.get('cf-access-jwt-assertion'));
+    if (access && !email) console.warn('Access request without cf-access-authenticated-user-email header');
+    res.json({ email, access });
+  });
   r.get('/meta', (req, res) => res.json({ statuses: STATUSES, categories: CATEGORIES, location_kinds: LOCATION_KINDS }));
 
   r.get('/stats', (req, res) => {

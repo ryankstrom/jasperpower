@@ -22,7 +22,8 @@ app.use('/api', createApi(db));
 app.get('/u/:uid', (req, res) => res.redirect(`/#/scan/${encodeURIComponent(req.params.uid)}`));
 
 app.use('/vendor/jsqr', express.static(resolve(root, 'node_modules/jsqr/dist')));
-app.use(express.static(resolve(root, 'public'), { extensions: ['html'] }));
+// no-cache: browsers and Cloudflare revalidate (cheap, via ETag) so a deploy never mixes old JS with new HTML
+app.use(express.static(resolve(root, 'public'), { extensions: ['html'], setHeaders: res => res.setHeader('Cache-Control', 'no-cache') }));
 
 // Phones only allow camera access on https (or localhost). If certs/key.pem + certs/cert.pem
 // exist, also serve https on HTTPS_PORT so the scanner works from a phone on the LAN.

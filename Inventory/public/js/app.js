@@ -911,9 +911,10 @@ async function pageScan(params, code) {
 
 // ---------- boot ----------
 let signedIn = null; // email from Cloudflare Access, when deployed behind it
+let behindAccess = false; // true behind Cloudflare Access, even if it didn't pass the email
 function renderActor() {
   $('#actorLbl').textContent = signedIn || actor.get() || 'Set name';
-  $('#actorBtn').title = signedIn ? 'Account' : 'Name recorded on history entries';
+  $('#actorBtn').title = behindAccess ? 'Account' : 'Name recorded on history entries';
 }
 // Behind Cloudflare Access the email opens a menu with Sign out; otherwise it sets a name.
 const userMenu = $('#userMenu');
@@ -921,9 +922,11 @@ const closeUserMenu = () => { userMenu.hidden = true; };
 document.addEventListener('click', e => { if (!e.target.closest('#userMenu, #actorBtn')) closeUserMenu(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeUserMenu(); });
 window.addEventListener('hashchange', closeUserMenu);
+userMenu.querySelector('[data-setname]').onclick = () => { closeUserMenu(); openNameModal(); };
 $('#actorBtn').onclick = () => {
-  if (signedIn) {
-    userMenu.querySelector('.hdr-menu-who').textContent = `Signed in as ${signedIn}`;
+  if (behindAccess) {
+    userMenu.querySelector('.hdr-menu-who').textContent = signedIn ? `Signed in as ${signedIn}` : 'Signed in';
+    userMenu.querySelector('[data-setname]').hidden = !!signedIn;
     userMenu.hidden = !userMenu.hidden;
     return;
   }
@@ -941,7 +944,7 @@ window.addEventListener('hashchange', router);
 (async () => {
   renderActor();
   try {
-    [META, { email: signedIn }] = await Promise.all([api('/meta'), api('/me')]);
+    [META, { email: signedIn, access: behindAccess }] = await Promise.all([api('/meta'), api('/me')]);
     renderActor();
   } catch { view.innerHTML = '<div class="card empty">Can’t reach the server.</div>'; return; }
   router();
