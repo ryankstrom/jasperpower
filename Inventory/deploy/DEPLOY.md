@@ -129,7 +129,10 @@ telling anyone the address**. Until then, anyone who finds it can edit the inven
    the app's hostname is behind Access, so point it at jsDelivr instead, e.g.
    `https://cdn.jsdelivr.net/gh/ryankstrom/jasperpower@<commit>/Inventory/public/brand/jasper-logo-cyan.svg`.
    With a custom background the login card is white, so use the slate (`-cyan`)
-   logo, not the white one. Under **Settings → Team domain** you can rename the
+   logo, not the white one. The organization name is shown beside the logo and is
+   required; to hide it, set it to a single zero-width space (U+200B). A blank or
+   ordinary space makes Cloudflare show the team domain there instead. Changes take
+   about a minute to appear. Under **Settings → Team domain** you can rename the
    sign-in address (this account uses `jasper-tools.cloudflareaccess.com`).
 
 Access is free for up to 50 users. Once someone signs in, the app records their
