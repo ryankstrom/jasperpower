@@ -913,9 +913,23 @@ async function pageScan(params, code) {
 let signedIn = null; // email from Cloudflare Access, when deployed behind it
 function renderActor() {
   $('#actorLbl').textContent = signedIn || actor.get() || 'Set name';
-  $('#logoutBtn').hidden = !signedIn; // only behind Cloudflare Access is there a session to end
+  $('#actorBtn').title = signedIn ? 'Account' : 'Name recorded on history entries';
 }
-$('#actorBtn').onclick = () => signedIn ? toast(`Signed in as ${signedIn}`) : modal(`<h2>Who’s using this device?</h2>
+// Behind Cloudflare Access the email opens a menu with Sign out; otherwise it sets a name.
+const userMenu = $('#userMenu');
+const closeUserMenu = () => { userMenu.hidden = true; };
+document.addEventListener('click', e => { if (!e.target.closest('#userMenu, #actorBtn')) closeUserMenu(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeUserMenu(); });
+window.addEventListener('hashchange', closeUserMenu);
+$('#actorBtn').onclick = () => {
+  if (signedIn) {
+    userMenu.querySelector('.hdr-menu-who').textContent = `Signed in as ${signedIn}`;
+    userMenu.hidden = !userMenu.hidden;
+    return;
+  }
+  openNameModal();
+};
+const openNameModal = () => modal(`<h2>Who’s using this device?</h2>
   <p class="muted small">Your name is saved on this browser and recorded on history entries you make. (Sign-in comes later.)</p>
   <form class="stack"><input type="text" name="n" value="${esc(actor.get())}" placeholder="Your name">
   <div class="modal-actions"><button type="button" class="sec" data-x>Cancel</button><button>Save</button></div></form>`, m => {

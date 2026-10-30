@@ -30,7 +30,14 @@ a{color:var(--accent-d)}
   text-decoration:none;display:inline-flex;align-items:center;gap:5px;max-width:180px;overflow:hidden}
 .hdr-btn:hover{background:rgba(255,255,255,.22)}
 #actorLbl{overflow:hidden;text-overflow:ellipsis}
-.hdr-btn[hidden]{display:none}
+.hdr-actions{position:relative}
+.hdr-menu{position:absolute;right:0;top:calc(100% + 8px);min-width:200px;background:#fff;color:var(--slate);
+  border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.22);padding:6px;z-index:70}
+.hdr-menu[hidden]{display:none}
+.hdr-menu-who{padding:8px 10px;font:12px system-ui;color:#6b7b7d;border-bottom:1px solid #e6e4dc;margin-bottom:4px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hdr-menu a{display:block;padding:9px 10px;border-radius:6px;color:var(--slate);text-decoration:none;font:600 14px system-ui}
+.hdr-menu a:hover{background:var(--paper)}
 
 /* ---------- nav: underlined tab bar on desktop, bottom bar on phones ---------- */
 #nav{display:flex;gap:4px;border-bottom:2px solid var(--line);max-width:1180px;margin:10px auto 0;padding:0 18px}
