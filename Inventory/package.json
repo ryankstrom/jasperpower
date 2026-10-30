@@ -2,7 +2,7 @@
   "name": "jasperinventory",
   "version": "0.1.0",
   "private": true,
-  "description": "Jasper equipment inventory — LoRaWAN devices, gateways and related hardware",
+  "description": "Jasper equipment inventory \u2014 LoRaWAN devices, gateways and related hardware",
   "type": "module",
   "main": "server/index.js",
   "engines": {
@@ -11,7 +11,8 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
-    "seed": "node server/seed.js"
+    "seed": "node server/seed.js",
+    "test": "node --test server/*.test.js"
   },
   "dependencies": {
     "express": "^5.1.0",

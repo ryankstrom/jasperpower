@@ -29,6 +29,7 @@ Requires Node 22.13+ (it uses Node's built-in SQLite, so there are no native bui
 ```sh
 npm install
 npm start            # http://localhost:8790
+npm test             # sample QR codes for every format the scanner reads
 ```
 
 Data lives in `data/inventory.db` (SQLite, git-ignored). To try it with demo data

@@ -108,8 +108,12 @@ export function createApi(db) {
     const warranty = q(`${DEVICE_SELECT} WHERE d.warranty_expires IS NOT NULL
       AND d.warranty_expires <= date('now','+60 days') AND d.status NOT IN ('retired','lost')
       ORDER BY d.warranty_expires LIMIT 10`).all();
+    // things someone should follow up on: away for repair, still in transit, or lost recently
+    const attention = q(`${DEVICE_SELECT} WHERE d.status IN ('repair','in_transit')
+      OR (d.status = 'lost' AND d.updated_at >= date('now','-90 days'))
+      ORDER BY d.updated_at LIMIT 20`).all();
     const total = q('SELECT COUNT(*) n FROM devices').get().n;
-    res.json({ total, byStatus, byCategory, byLocation, warranty });
+    res.json({ total, byStatus, byCategory, byLocation, warranty, attention });
   });
 
   r.get('/events', (req, res) => {
@@ -228,6 +232,7 @@ export function createApi(db) {
   r.get('/devices/:id', (req, res) => {
     const d = mustDevice(req.params.id);
     d.events = q(`${EVENT_SELECT} WHERE e.device_id = ? ORDER BY e.ts DESC, e.id DESC`).all(d.id);
+    d.deletable = !hasHistory(d.id);
     res.json(d);
   });
 
@@ -319,8 +324,12 @@ export function createApi(db) {
     res.status(201).json({ ok: true });
   });
 
+  // A device's history is the point of the app, so only a record with nothing beyond its
+  // "added" entry (i.e. entered by mistake) can be deleted. Everything else gets retired.
+  const hasHistory = id => q(`SELECT 1 FROM events WHERE device_id = ? AND action <> 'created'`).get(id);
   r.delete('/devices/:id', (req, res) => {
     const cur = mustDevice(req.params.id);
+    if (hasHistory(cur.id)) throw new HttpError(409, 'This device has history, so it can’t be deleted. Retire it instead.');
     q('DELETE FROM devices WHERE id = ?').run(cur.id);
     res.status(204).end();
   });

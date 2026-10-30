@@ -32,7 +32,7 @@ function ago(s) {
 }
 const duration = (a, b) => {
   const days = Math.round((new Date(b || Date.now()) - new Date(a)) / 864e5);
-  return days < 1 ? '< 1 day' : days < 60 ? `${days} days` : `${(days / 30.4).toFixed(1)} months`;
+  return days < 1 ? '< 1 day' : days < 60 ? `${days} day${days === 1 ? '' : 's'}` : `${(days / 30.4).toFixed(1)} months`;
 };
 const money = v => (v == null ? '—' : Number(v).toLocaleString(undefined, { style: 'currency', currency: 'USD' }));
 const fmtEui = e => (e ? e.match(/.{2}/g).join(':') : '—');
@@ -169,14 +169,15 @@ async function quickModel() {
   catch (e) { toast(e.message, true); return null; }
 }
 
-// ---------- status transition (check in / deploy / move ...) ----------
+// ---------- status transition (return to stock / deploy / ship ...) ----------
+// Buttons are always verbs (what you're doing); pills and filters use the status nouns from META.
 const ACTIONS = [
-  { key: 'in_stock', text: 'Check in', kind: 'warehouse' },
+  { key: 'in_stock', text: 'Return to stock', kind: 'warehouse' },
   { key: 'deployed', text: 'Deploy', kind: 'site' },
-  { key: 'in_transit', text: 'In transit', kind: 'vehicle' },
-  { key: 'repair', text: 'Repair', kind: 'vendor' },
+  { key: 'in_transit', text: 'Ship', kind: 'vehicle' },
+  { key: 'repair', text: 'Send to repair', kind: 'vendor' },
   { key: 'retired', text: 'Retire', kind: null },
-  { key: 'lost', text: 'Lost', kind: null },
+  { key: 'lost', text: 'Mark lost', kind: null },
 ];
 async function transitionModal(dev, status, onDone) {
   const locs = await locations();
@@ -218,6 +219,8 @@ async function transitionModal(dev, status, onDone) {
     };
   });
 }
+
+const phone = window.matchMedia('(max-width:720px)');
 
 // ---------- router ----------
 let cleanup = null;
@@ -263,19 +266,32 @@ async function pageHome() {
     const n = s => rows.filter(r => r.status === s).reduce((a, r) => a + r.n, 0);
     return { ...c, stock: n('in_stock'), deployed: n('deployed'), other: rows.reduce((a, r) => a + r.n, 0) - n('in_stock') - n('deployed') };
   }).filter(c => c.stock + c.deployed + c.other);
+  const where = d => (d.location_name ? ` at ${esc(d.location_name)}` : '');
+  const attention = [
+    ...stats.attention.map(d => ({ d, pill: pill(d.status),
+      why: `${esc(statusLabel(d.status))}${where(d)} for ${duration(d.updated_at)}` })),
+    ...stats.warranty.map(d => ({ d, pill: `<span class="pill" style="--c:var(--warn)">Warranty</span>`,
+      why: `Warranty ${new Date(d.warranty_expires) < new Date() ? 'ended' : 'ends'} ${fmtDate(d.warranty_expires)}` })),
+  ];
 
   view.innerHTML = `
     <div class="page-head"><div class="grow"><h1>Dashboard</h1>
       <p class="sub">${stats.total} device${stats.total === 1 ? '' : 's'} tracked across ${stats.byLocation.length ? 'your sites and stock' : 'inventory'}.</p></div>
       <div class="actions"><a class="btn" href="#/scan">⌗ Scan a device</a><a class="btn sec" href="#/new">＋ Add device</a></div></div>
-    <div class="readouts">${META.statuses.map(s => `
-      <a class="readout" style="--c:${STATUS_COLOR[s.key]}" href="#/devices?status=${s.key}">
-        <div class="big">${by[s.key] || 0}</div><div class="lbl">${esc(s.label)}</div></a>`).join('')}</div>
+    <div class="counts">${META.statuses.map(s => `
+      <a class="count ${by[s.key] ? '' : 'zero'}" style="--c:${STATUS_COLOR[s.key]}" href="#/devices?status=${s.key}"><b>${by[s.key] || 0}</b>${esc(s.label)}</a>`).join('')}</div>
     <div class="split" style="margin-top:14px">
       <div class="stack">
+        <div class="card attn"><div class="card-title">Needs attention</div>
+          ${attention.length ? `<ul>${attention.map(a => `<li data-href="#/d/${a.d.id}">
+            <div class="body"><div class="t1">${esc(devTitle(a.d))}</div><div class="t2">${a.why}</div></div>${a.pill}</li>`).join('')}</ul>`
+          : `<div class="all-clear">✓ All clear: nothing in repair, in transit, recently lost or near the end of its warranty.</div>`}
+        </div>
         <div class="card"><div class="card-title">By equipment type</div>
-          ${cats.length ? `<div class="tbl-wrap" style="border:0"><table><thead><tr><th>Type</th><th>In stock</th><th>Deployed</th><th>Other</th></tr></thead><tbody>
-          ${cats.map(c => `<tr class="click" data-href="#/devices?category=${c.key}"><td class="t1">${esc(c.label)}</td><td>${c.stock}</td><td>${c.deployed}</td><td class="muted">${c.other}</td></tr>`).join('')}
+          ${cats.length ? `<div class="tbl-wrap" style="border:0"><table><tbody>
+          ${cats.map(c => `<tr class="click" data-href="#/devices?category=${c.key}"><td><div class="t1">${esc(c.label)}</div>
+            <div class="t2">${c.stock} in stock · ${c.deployed} deployed${c.other ? ` · ${c.other} other` : ''}</div></td>
+            <td style="text-align:right"><b>${c.stock + c.deployed + c.other}</b></td></tr>`).join('')}
           </tbody></table></div>` : `<div class="empty">No devices yet. <a href="#/new">Add your first device</a> or <a href="#/scan">scan one</a>.</div>`}
         </div>
         <div class="card"><div class="card-title">Where things are</div>
@@ -283,9 +299,6 @@ async function pageHome() {
           ${stats.byLocation.map(l => `<tr class="click" data-href="#/l/${l.id}"><td><div class="t1">${esc(l.name)}</div><div class="t2">${esc(kindLabel(l.kind))}</div></td><td style="text-align:right"><b>${l.n}</b></td></tr>`).join('')}
           </tbody></table></div>` : `<div class="empty">No devices assigned to locations yet.</div>`}
         </div>
-        ${stats.warranty.length ? `<div class="card"><div class="card-title">Warranty expiring within 60 days</div>
-          <div class="tbl-wrap" style="border:0"><table><tbody>${stats.warranty.map(d => `<tr class="click" data-href="#/d/${d.id}">
-          <td><div class="t1">${esc(devTitle(d))}</div><div class="t2 mono">${esc(d.uid)}</div></td><td class="nowrap">${fmtDate(d.warranty_expires)}</td></tr>`).join('')}</tbody></table></div></div>` : ''}
       </div>
       <div class="card"><div class="card-title">Recent activity</div>${timeline(events, true)}</div>
     </div>`;
@@ -443,7 +456,7 @@ async function pageDevice(params, id) {
             <div class="stack" style="gap:8px"><div class="small muted">Scanning this label opens the device here. ${d.uid_source === 'eui' ? 'The device’s own LoRaWAN QR code also works.' : ''}</div>
             <a class="btn sec" href="#/labels?ids=${d.id}">🖨 Print label</a></div></div>
         </div>
-        <button class="sec" id="delBtn" style="color:var(--danger)">Delete record…</button>
+        ${d.deletable ? `<div class="del-link"><button class="link" id="delBtn">Added by mistake? Delete this record</button></div>` : ''}
       </div>
     </div>`;
   const reload = () => pageDevice(params, id);
@@ -459,9 +472,9 @@ async function pageDevice(params, id) {
     };
   });
   $('#editBtn').onclick = () => editDeviceModal(d, reload);
-  $('#delBtn').onclick = async () => {
-    if (!await confirmModal('Delete this record?', `This permanently removes <b>${esc(d.uid)}</b> and its entire history. Use <b>Retire</b> instead for equipment that has reached end of life — deleting is for records entered by mistake.`, 'Delete', true)) return;
-    await api('/devices/' + d.id, { method: 'DELETE' });
+  if (d.deletable) $('#delBtn').onclick = async () => {
+    if (!await confirmModal('Delete this record?', `<b>${esc(d.uid)}</b> has no history yet, so it can be removed as a mistaken entry. Once it has history, use <b>Retire</b> instead.`, 'Delete', true)) return;
+    try { await api('/devices/' + d.id, { method: 'DELETE' }); } catch (e) { return toast(e.message, true); }
     toast('Deleted ' + d.uid);
     go('#/devices');
   };
@@ -850,8 +863,11 @@ async function pageScan(params, code) {
     const res = await api('/lookup?code=' + encodeURIComponent(raw)).catch(e => (toast(e.message, true), null));
     if (!res) return;
     mode === 'batch' ? batchAdd(res) : showResult(res);
-    if (mode !== 'batch') $('#result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // on phones the result slides up over the camera (CSS); on wider screens it sits beside it
+    if (mode !== 'batch' && !phone.matches) $('#result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   };
+  const nextBtn = `<button type="button" class="sec full scan-next" data-next>⌗ Scan next</button>`;
+  $('#result').addEventListener('click', e => { if (e.target.closest('[data-next]')) $('#result').innerHTML = ''; });
   const showResult = ({ parsed, device: d }) => {
     if (d) {
       $('#result').innerHTML = `<div class="card result" style="--c:${STATUS_COLOR[d.status]}">
@@ -861,7 +877,7 @@ async function pageScan(params, code) {
           <div class="small muted">${esc(modelText(d))}</div></div>
           <div style="text-align:right">${pill(d.status)}<div class="small muted">${esc(d.location_name || 'No location')}</div></div></div>
         <div class="qa" style="margin-top:12px">${ACTIONS.map(a => `<button data-act="${a.key}" style="--c:${STATUS_COLOR[a.key]}" class="${d.status === a.key ? 'cur' : ''}"><span class="i">${STATUS_ICON[a.key]}</span>${esc(a.text)}</button>`).join('')}</div>
-        <a class="btn sec full" style="margin-top:10px" href="#/d/${d.id}">Open device details ›</a></div>`;
+        <div class="result-actions"><a class="btn sec" href="#/d/${d.id}">Device details ›</a>${nextBtn}</div></div>`;
       $$('#result [data-act]').forEach(b => b.onclick = () => transitionModal(d, b.dataset.act, nd => showResult({ parsed, device: nd })));
     } else {
       const what = parsed.eui ? `EUI <span class="mono">${fmtEui(parsed.eui)}</span>` : parsed.uid ? `UID <span class="mono">${esc(parsed.uid)}</span>` : `<span class="mono">${esc(parsed.raw)}</span>`;
@@ -871,7 +887,7 @@ async function pageScan(params, code) {
       if (parsed.serial) qs.set('serial', parsed.serial);
       $('#result').innerHTML = `<div class="card result" style="--c:var(--warn)"><div class="card-title">Not in inventory</div>
         <p style="margin:0 0 12px">${what} isn’t tracked yet.</p>
-        <a class="btn full" href="#/new?${qs}">＋ Add this device</a></div>`;
+        <div class="result-actions"><a class="btn" href="#/new?${qs}">＋ Add this device</a>${nextBtn}</div></div>`;
     }
   };
   const batchAdd = async ({ parsed, device }) => {
@@ -913,7 +929,8 @@ async function pageScan(params, code) {
 let signedIn = null; // email from Cloudflare Access, when deployed behind it
 let behindAccess = false; // true behind Cloudflare Access, even if it didn't pass the email
 function renderActor() {
-  $('#actorLbl').textContent = signedIn || actor.get() || 'Set name';
+  // just the name part of the email up top; the full address is still what's recorded in history
+  $('#actorLbl').textContent = (signedIn && signedIn.split('@')[0]) || actor.get() || 'Set name';
   $('#actorBtn').title = behindAccess ? 'Account' : 'Name recorded on history entries';
 }
 // Behind Cloudflare Access the email opens a menu with Sign out; otherwise it sets a name.

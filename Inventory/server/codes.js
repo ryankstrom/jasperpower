@@ -65,8 +65,7 @@ export function parseScan(raw) {
       out.join_eui = normalizeEui(pick('joineui', 'appeui'));
       const sn = pick('sn', 'serial', 'serialnumber');
       out.serial = sn != null ? String(sn) : null;
-      out.format = 'json';
-      if (out.eui || out.serial) return out;
+      if (out.eui || out.serial) { out.format = 'json'; return out; }
     } catch { /* not JSON — fall through */ }
   }
 
