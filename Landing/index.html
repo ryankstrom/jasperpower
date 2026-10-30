@@ -42,7 +42,8 @@
   .app:hover{border-color:var(--accent);box-shadow:0 6px 20px rgba(43,58,59,.10);transform:translateY(-2px)}
   .app:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
   .app .ico{width:44px;height:44px;border-radius:10px;background:var(--slate-d);color:var(--cyan);
-    display:flex;align-items:center;justify-content:center;font-size:22px}
+    display:flex;align-items:center;justify-content:center}
+  .app .ico svg{width:26px;height:26px}
   .app h2{font-family:var(--serif);font-size:22px;font-weight:600;margin:4px 0 0;color:var(--slate)}
   .app p{margin:0;font-size:15px;line-height:1.5;color:var(--txt);flex:1}
   .app .go{font:600 14px system-ui;color:var(--accent-d)}
@@ -81,7 +82,7 @@
 
   <div class="apps">
     <a class="app" href="https://power.jasper.tools">
-      <div class="ico" aria-hidden="true">☀</div>
+      <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="4.5" r="2"/><path d="M18.5 0.8v.7M22.2 4.5h-.7M15.5 4.5h-.7M21.1 1.9l-.5.5M15.9 1.9l.5.5"/><path d="M5 9h11l3 7H2z"/><path d="M3.5 12.5h14M8.3 9 7.3 16M12.7 9l.9 7"/><path d="M10.5 16v4M7 20h7"/></svg></div>
       <span class="badge public">Open to everyone</span>
       <h2>Remote Power Calculator</h2>
       <p>Size an off-grid solar and battery system for a site. Pick your equipment, drop the site on the map, and see what it needs to run year-round.</p>
@@ -89,15 +90,15 @@
     </a>
 
     <a class="app" href="https://propagation.jasper.tools">
-      <div class="ico" aria-hidden="true">📶</div>
+      <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11 8.5 21M12 11l3.5 10M9.6 18h4.8"/><circle cx="12" cy="9" r="1.6"/><path d="M8.6 5.6a4.8 4.8 0 0 0 0 6.8M15.4 5.6a4.8 4.8 0 0 1 0 6.8M5.8 2.8a8.8 8.8 0 0 0 0 12.4M18.2 2.8a8.8 8.8 0 0 1 0 12.4"/></svg></div>
       <span class="badge public">Open to everyone</span>
-      <h2>LoRaWAN Propagation Study</h2>
-      <p>Walk the coverage area with a LoRaWAN device and log readings on a map to see where the signal reaches.</p>
-      <span class="go">Open the study</span>
+      <h2>LoRaWAN Propagation Tool</h2>
+      <p>Plan gateway coverage over real terrain. Place gateways on the map to see predicted signal strength, the reliable coverage edge and the terrain profile of any link.</p>
+      <span class="go">Open the tool</span>
     </a>
 
     <a class="app" href="https://inventory.jasper.tools">
-      <div class="ico" aria-hidden="true">▦</div>
+      <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 20.5 7v10L12 21.5 3.5 17V7z"/><path d="M3.5 7 12 11.5 20.5 7M12 11.5v10"/><path d="M7.8 4.8l8.5 4.5"/></svg></div>
       <span class="badge staff">SLR employees only</span>
       <h2>Equipment Inventory</h2>
       <p>Track Jasper devices and gateways: where each one is, its status and its history. Scan a device’s QR code with your phone to check it in or out.</p>
