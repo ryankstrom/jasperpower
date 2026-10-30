@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jasper Tools</title>
+<meta name="description" content="Tools for planning and running Jasper LoRaWAN deployments." />
+<link rel="icon" type="image/svg+xml" href="brand/jasper-icon-cyan.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Jasper / SLR brand palette */
+    --slate:#3f5355; --slate-d:#34464a; --slate-dd:#2b3a3b;
+    --paper:#f4f3ee; --bg:#ffffff; --line:#d9dcd2;
+    --txt:#27383a; --muted:#6f8182;
+    --accent:#2f8f8b; --accent-d:#247470; --cyan:#5ec5c2;
+    --warn:#bf831c;
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    background:var(--paper);color:var(--txt)}
+  body{display:flex;flex-direction:column;min-height:100vh}
+  /* brand header */
+  #brandbar{flex:none;height:80px;background:var(--slate-d);display:flex;align-items:center;
+    gap:18px;padding:0 22px;color:#fff;box-shadow:0 1px 0 rgba(0,0,0,.15)}
+  #brandbar img.logo{height:46px;display:block}
+  #brandbar .divider{width:1px;height:40px;background:rgba(255,255,255,.25)}
+  #brandbar .title{font-family:var(--serif);font-size:26px;font-weight:500;letter-spacing:.2px;color:#eef3f1}
+  #brandbar .title b{font-weight:600}
+
+  main{flex:1;width:100%;max-width:1040px;margin:0 auto;padding:44px 22px 56px}
+  h1{font-family:var(--serif);font-size:34px;font-weight:600;margin:0 0 8px;color:var(--slate);letter-spacing:.2px}
+  .lede{font-size:17px;color:var(--muted);margin:0 0 32px;max-width:60ch;line-height:1.5}
+
+  .apps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+  .app{display:flex;flex-direction:column;gap:10px;background:var(--bg);border:1px solid var(--line);
+    border-radius:14px;padding:22px 22px 20px;color:inherit;text-decoration:none;
+    transition:border-color .15s,box-shadow .15s,transform .15s}
+  .app:hover{border-color:var(--accent);box-shadow:0 6px 20px rgba(43,58,59,.10);transform:translateY(-2px)}
+  .app:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+  .app .ico{width:44px;height:44px;border-radius:10px;background:var(--slate-d);color:var(--cyan);
+    display:flex;align-items:center;justify-content:center;font-size:22px}
+  .app h2{font-family:var(--serif);font-size:22px;font-weight:600;margin:4px 0 0;color:var(--slate)}
+  .app p{margin:0;font-size:15px;line-height:1.5;color:var(--txt);flex:1}
+  .app .go{font:600 14px system-ui;color:var(--accent-d)}
+  .app .go::after{content:" →"}
+  .badge{align-self:flex-start;font:600 12px system-ui;letter-spacing:.2px;border-radius:999px;padding:4px 10px}
+  .badge.public{background:#e3f1ef;color:var(--accent-d)}
+  .badge.staff{background:#f6ead3;color:#8a5c10}
+  .app .note{font-size:13px;color:var(--muted);flex:none}
+
+  footer{flex:none;text-align:center;font-size:13px;color:var(--muted);padding:18px 22px 26px}
+
+  @media (max-width:860px){
+    .apps{grid-template-columns:minmax(0,1fr)}
+  }
+  @media (max-width:720px){
+    #brandbar{height:56px;gap:10px;padding:0 16px}
+    #brandbar img.logo{height:30px}
+    #brandbar .divider{height:26px}
+    #brandbar .title{font-size:18px}
+    main{padding:28px 16px 40px}
+    h1{font-size:27px}
+    .lede{font-size:16px;margin-bottom:24px}
+  }
+</style>
+</head>
+<body>
+<header id="brandbar">
+  <img class="logo" src="brand/jasper-logo-white.svg" alt="Jasper" />
+  <div class="divider"></div>
+  <div class="title"><b>Tools</b></div>
+</header>
+
+<main>
+  <h1>Jasper tools</h1>
+  <p class="lede">Planning and field tools for Jasper LoRaWAN deployments.</p>
+
+  <div class="apps">
+    <a class="app" href="https://power.jasper.tools">
+      <div class="ico" aria-hidden="true">☀</div>
+      <span class="badge public">Open to everyone</span>
+      <h2>Remote Power Calculator</h2>
+      <p>Size an off-grid solar and battery system for a site. Pick your equipment, drop the site on the map, and see what it needs to run year-round.</p>
+      <span class="go">Open the calculator</span>
+    </a>
+
+    <a class="app" href="https://propagation.jasper.tools">
+      <div class="ico" aria-hidden="true">📶</div>
+      <span class="badge public">Open to everyone</span>
+      <h2>LoRaWAN Propagation Study</h2>
+      <p>Walk the coverage area with a LoRaWAN device and log readings on a map to see where the signal reaches.</p>
+      <span class="go">Open the study</span>
+    </a>
+
+    <a class="app" href="https://inventory.jasper.tools">
+      <div class="ico" aria-hidden="true">▦</div>
+      <span class="badge staff">SLR employees only</span>
+      <h2>Equipment Inventory</h2>
+      <p>Track Jasper devices and gateways: where each one is, its status and its history. Scan a device’s QR code with your phone to check it in or out.</p>
+      <span class="note">Sign in with your @slrconsulting.com email.</span>
+      <span class="go">Open the inventory</span>
+    </a>
+  </div>
+</main>
+
+<footer>Jasper · SLR Consulting</footer>
+</body>
+</html>
