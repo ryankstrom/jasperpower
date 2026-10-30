@@ -30,6 +30,7 @@ a{color:var(--accent-d)}
   text-decoration:none;display:inline-flex;align-items:center;gap:5px;max-width:180px;overflow:hidden}
 .hdr-btn:hover{background:rgba(255,255,255,.22)}
 #actorLbl{overflow:hidden;text-overflow:ellipsis}
+.hdr-btn[hidden]{display:none}
 
 /* ---------- nav: underlined tab bar on desktop, bottom bar on phones ---------- */
 #nav{display:flex;gap:4px;border-bottom:2px solid var(--line);max-width:1180px;margin:10px auto 0;padding:0 18px}

@@ -913,6 +913,7 @@ async function pageScan(params, code) {
 let signedIn = null; // email from Cloudflare Access, when deployed behind it
 function renderActor() {
   $('#actorLbl').textContent = signedIn || actor.get() || 'Set name';
+  $('#logoutBtn').hidden = !signedIn; // only behind Cloudflare Access is there a session to end
 }
 $('#actorBtn').onclick = () => signedIn ? toast(`Signed in as ${signedIn}`) : modal(`<h2>Who’s using this device?</h2>
   <p class="muted small">Your name is saved on this browser and recorded on history entries you make. (Sign-in comes later.)</p>
